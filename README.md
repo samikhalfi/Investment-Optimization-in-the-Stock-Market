@@ -1,2 +1,2 @@
-# redictive Chatbot for Investment Optimization in the Stock Market  
+# Predictive Chatbot for Investment Optimization in the Stock Market  
 
