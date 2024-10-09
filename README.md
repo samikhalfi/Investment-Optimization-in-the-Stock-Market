@@ -1,2 +1,2 @@
-# Restaurant_Scraper
-A scraping tool from Tripadvisor 
+# redictive Chatbot for Investment Optimization in the Stock Market  
+
