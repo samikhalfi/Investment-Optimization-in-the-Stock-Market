@@ -5,7 +5,7 @@ import time
 
 API_KEY = ''  
 def fetch_company_news(symbol, from_date, to_date):
-    url = f'    /v1/company-news?symbol={symbol}&from={from_date}&to={to_date}&token={API_KEY}'
+    url = f'https://finnhub.io/api/v1/company-news?symbol={symbol}&from={from_date}&to={to_date}&token={API_KEY}'
 
     try:
 
