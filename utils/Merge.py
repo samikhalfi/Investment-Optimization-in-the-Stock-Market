@@ -2,7 +2,7 @@ import pandas as pd
 import os
 
 # Charger les données des scores de sentiment depuis le fichier CSV
-file_path = r'C:\Users\anask\Desktop\Investment-Optimization-in-the-Stock-Market-main\Data\Processed_Company_News.csv'
+file_path = 'Data\Processed_Company_News.csv'
 df = pd.read_csv(file_path)
 
 # Calculer la moyenne des scores de sentiment pour chaque date
@@ -10,7 +10,7 @@ df_avg_sentiment = df.groupby('date')['sentiment_score'].mean().reset_index()
 df_avg_sentiment.columns = ['date', 'avg_sentiment_score']
 
 # Charger les données historiques du fichier CSV
-historical_data_file = r'C:\Users\anask\Desktop\Investment-Optimization-in-the-Stock-Market-main\Data\historical_data.csv'
+historical_data_file = 'Data\historical_data.csv'
 df_historical = pd.read_csv(historical_data_file)
 
 # Convertir les colonnes 'date' pour les rendre comparables (format de date identique)

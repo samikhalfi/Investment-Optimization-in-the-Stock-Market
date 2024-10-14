@@ -25,14 +25,14 @@ def fetch_company_news(symbol, from_date, to_date):
         news_df.to_csv(csv_filename, index=False)
 
         print(f"Fetched {len(news_data)} news articles for {symbol} from {from_date} to {to_date}.")
-        return news_df
+        return news_df , print(response.json())
     except Exception as e:
         print(f"Error fetching data: {e}")
         return None
 
 if __name__ == "__main__":
     symbol = 'AAPL'
-    from_date = '2023-08-15'
-    to_date = '2024-08-20'
+    from_date = '2024-07-16'
+    to_date = '2024-10-14'
 
     fetch_company_news(symbol, from_date, to_date)
