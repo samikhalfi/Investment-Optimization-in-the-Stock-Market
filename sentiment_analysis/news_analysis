@@ -1,0 +1,79 @@
+import pandas as pd
+import matplotlib.pyplot as plt
+import seaborn as sns
+from wordcloud import WordCloud
+
+# Load the processed data
+data = pd.read_csv("Data/Processed_Company_News.csv")
+
+# Display basic information about the dataset
+print(data.info())
+print(data.describe())
+
+# Check for non-numeric values in the sentiment_score column
+print(data['sentiment_score'].unique())
+
+# Convert sentiment_score to numeric, forcing errors to NaN
+data['sentiment_score'] = pd.to_numeric(data['sentiment_score'], errors='coerce')
+
+# Handle NaN values if any were introduced
+print(data['sentiment_score'].isna().sum(), "NaN values found after conversion.")
+
+# Count the frequency of sentiment scores and categorize them
+def categorize_sentiment(score):
+    if score >= 0.05:
+        return 'Positive'
+    elif score <= -0.05:
+        return 'Negative'
+    else:
+        return 'Neutral'
+
+# Apply the categorization function
+data['sentiment_label'] = data['sentiment_score'].apply(categorize_sentiment)
+
+# Count the frequency of sentiment labels
+sentiment_counts = data['sentiment_label'].value_counts()
+print(sentiment_counts)
+
+# Visualize the sentiment distribution
+plt.figure(figsize=(10, 5))
+sns.countplot(data=data, x='sentiment_label', order=sentiment_counts.index, palette='viridis')
+plt.title('Sentiment Distribution')
+plt.xlabel('Sentiment')
+plt.ylabel('Count')
+plt.xticks(rotation=45)
+plt.show()
+
+# Analyze headline lengths
+data['headline_length'] = data['headline'].apply(lambda x: len(x.split()))
+plt.figure(figsize=(10, 5))
+sns.histplot(data['headline_length'], bins=30, kde=True, color='blue')
+plt.title('Distribution of Headline Lengths')
+plt.xlabel('Number of Words in Headline')
+plt.ylabel('Frequency')
+plt.axvline(data['headline_length'].mean(), color='red', linestyle='--', label='Mean Length')
+plt.legend()
+plt.show()
+
+# Word frequency analysis
+all_words = ' '.join(data['headline'])
+wordcloud = WordCloud(width=800, height=400, background_color='white').generate(all_words)
+
+# Plot the word cloud
+plt.figure(figsize=(10, 5))
+plt.imshow(wordcloud, interpolation='bilinear')
+plt.axis('off')
+plt.title('Word Cloud of Processed Headlines')
+plt.show()
+
+# Top N frequent words analysis
+top_n = 10  # Set this to the number of top words you want to analyze
+word_freq = pd.Series(all_words.split()).value_counts().head(top_n)
+
+# Visualize the top N frequent words
+plt.figure(figsize=(10, 5))
+sns.barplot(x=word_freq.values, y=word_freq.index, palette='viridis')
+plt.title(f'Top {top_n} Most Frequent Words')
+plt.xlabel('Frequency')
+plt.ylabel('Words')
+plt.show()
