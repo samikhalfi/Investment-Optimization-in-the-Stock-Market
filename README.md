@@ -1,7 +1,7 @@
 
 # Stock Trader Prophet
 
-📈 **IStock Trader Prophet** est une application Streamlit conçue pour analyser les données du marché boursier et visualiser les tendances. Ce tableau de bord permet aux utilisateurs de prendre des décisions d'investissement éclairées en fournissant des données historiques, une analyse des sentiments à partir d'articles d'actualités et des aperçus prédictifs.
+📈 **Stock Trader Prophet** est une application Streamlit conçue pour analyser les données du marché boursier et visualiser les tendances. Ce tableau de bord permet aux utilisateurs de prendre des décisions d'investissement éclairées en fournissant des données historiques, une analyse des sentiments à partir d'articles d'actualités et des aperçus prédictifs.
 
 ## Features
 
@@ -62,4 +62,5 @@ Ce projet est sous licence MIT. Voir le fichier [LICENSE](LICENSE) pour plus de 
 ## Contact
 
 Pour toute question, veuillez contacter :
-- Votre Nom - [your.email@example.com](mailto:your.email@example.com)
+- Khalfi Sami - samikhalfi2003@gmail.com
+
