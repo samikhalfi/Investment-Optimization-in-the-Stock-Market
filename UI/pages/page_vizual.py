@@ -6,12 +6,14 @@ from statsmodels.tsa.arima.model import ARIMA
 from wordcloud import WordCloud
 from UI.pages.chatbot_page import chatbot_page
 from utils.nltk_sentiment_analysis import *
+import altair as alt
+import numpy as np
 
 def display_stock_dashboard():
     # Load company data from JSON
     with open('json/companies.json') as f:
         companies = json.load(f)
-    
+
     # Title with styling
     st.markdown("<h1 style='text-align: center; color: #fe735d;'>📈 Stock Market Investment Dashboard 📉</h1>", unsafe_allow_html=True)
     st.divider()
@@ -90,31 +92,105 @@ def display_stock_dashboard():
                             'y': {'field': 'Count', 'type': 'quantitative', 'axis': {'grid': False}},
                         },
                     }, use_container_width=True)
-                    
-                    # Word Cloud of Headlines
-                    st.subheader("Word Cloud of Headlines")
-                    all_words = ' '.join(processed_news['headline'])
-                    wordcloud = WordCloud(width=800, height=400, background_color='white').generate(all_words)
-                    st.image(wordcloud.to_array())
-                    
+
+                    st.subheader("Stock Dashboard")
+                    st.divider()
+                    # Créer une colonne pour la mise en page
+                    col1, col2 = st.columns(2)  # Créez deux colonnes
+
+                    # **Premier graphique (Word Cloud)**
+                    with col1:
+                        st.subheader("Word Cloud of Headlines")
+                        all_words = ' '.join(processed_news['headline'])
+                        wordcloud = WordCloud(width=400, height=200, background_color='white').generate(all_words)
+                        st.image(wordcloud.to_array())
+
+                    # **Deuxième graphique (Stock High Prices)**
+                    with col2:
+                        st.subheader("Stock High Prices Over Time")
+                        # Assurez-vous que la colonne 'Date' est au format datetime
+                        df_historical['Date'] = pd.to_datetime(df_historical['Date'])
+                        line_chart_style = alt.Chart(df_historical).mark_line(point=True).encode(
+                            x=alt.X('Date:T', title='Date'),
+                            y=alt.Y('High:Q', title='High Price'),
+                            tooltip=['Date:T', 'High:Q'],
+                            color=alt.value("#fe735d")
+                        ).properties(
+                            width=400,  # Largeur réduite
+                            height=200  # Hauteur réduite
+                        ).interactive()
+
+                        st.altair_chart(line_chart_style, use_container_width=True)
+
+                    # Créer une nouvelle rangée pour les deux derniers graphiques
+                    col3, col4 = st.columns(2)  # Créez deux colonnes pour la deuxième rangée
+
+                    # **Troisième graphique (Area Chart of Closing Prices)**
+                    with col3:
+                        st.subheader("Area Chart of Closing Prices")
+                        area_chart = alt.Chart(df_historical).mark_area(
+                            opacity=0.5,
+                            interpolate='basis'
+                        ).encode(
+                            x=alt.X('Date:T', title='Date'),
+                            y=alt.Y('Close:Q', title='Closing Price'),
+                            tooltip=['Date:T', 'Close:Q']
+                        ).properties(
+                            width=400,  # Largeur réduite
+                            height=200  # Hauteur réduite
+                        ).interactive()
+
+                        st.altair_chart(area_chart, use_container_width=True)
+
+                    # **Quatrième graphique (Répartition des Volumes d'Actions)**
+                    with col4:
+                        st.subheader("Répartition des Volumes d'Actions")
+                        volume_bins = pd.cut(df_historical['Volume'], bins=[0, 1e7, 2e7, 3e7, 4e7, 5e7], right=False)
+                        volume_counts = volume_bins.value_counts().reset_index()
+                        volume_counts.columns = ['Volume Range', 'Count']
+                        volume_counts['Volume Range'] = volume_counts['Volume Range'].apply(lambda x: f"{int(x.left)} - {int(x.right)}")
+
+                        circle_chart_volume = alt.Chart(volume_counts).mark_arc(innerRadius=50).encode(
+                            theta=alt.Theta(field='Count', type='quantitative'),
+                            color=alt.Color(field='Volume Range', type='nominal'),
+                            tooltip=['Volume Range', 'Count']
+                        ).properties(
+                            title="Répartition des Volumes d'Actions",
+                            width=400,  # Largeur réduite
+                            height=200  # Hauteur réduite
+                        )
+
+                        st.altair_chart(circle_chart_volume, use_container_width=True)
+
+
+                    st.divider()
+
                 elif selected_tab == 'Predictions':
                     st.subheader("Stock Price Forecast")
                     st.divider()
                     
+                   # Forecasting prices using ARIMA model
                     df_historical['Date'] = pd.to_datetime(df_historical['Date'])
                     df_historical.set_index('Date', inplace=True)
-                    
+
                     model = ARIMA(df_historical['Close'], order=(1, 1, 1))
                     model_fit = model.fit()
                     forecast = model_fit.forecast(steps=3)
-                    
+
                     forecast_dates = pd.date_range(start=pd.to_datetime('now'), periods=3)
                     predicted_prices = forecast.values
-                    
-                    cols = st.columns(3)
+
+                    # Render predicted prices in cards
+                    cols = st.columns(3)  # Create three columns for the cards
                     for i, price in enumerate(predicted_prices):
-                        ui.card(title=f"Price for {forecast_dates[i].date()}", content=f"{price:.2f}", key=f"forecast_{i+1}").render()
-                    
+                        with cols[i]:  # Use the current column for each price
+                            ui.card(
+                                title=f"Price for {forecast_dates[i].date()}",
+                                content=f"{price:.2f}",  # Format the price to two decimal places
+                                description="Forecasted price based on historical data",
+                                key=f"forecast_{i+1}"
+                            ).render()
+
                     # Forecast Line Chart
                     forecast_df = pd.DataFrame({'Date': forecast_dates, 'Predicted Close Price': predicted_prices})
                     combined_df = pd.concat([df_historical[['Close']], forecast_df.set_index('Date')])
