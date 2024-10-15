@@ -4,7 +4,7 @@ import yfinance as yf
 from datetime import datetime, timedelta
 import requests
 from bs4 import BeautifulSoup
-from utils.informations import *
+
 # Function to fetch S&P 500 companies and their details
 def fetch_sp500_companies():
     url = 'https://en.wikipedia.org/wiki/List_of_S%26P_500_companies'

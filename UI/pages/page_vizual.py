@@ -1,152 +1,135 @@
 import streamlit as st
+import streamlit_shadcn_ui as ui
 import requests
 import pandas as pd
 import json
-import yfinance as yf
 import re
-import nltk
-from nltk.sentiment import SentimentIntensityAnalyzer
-from nltk.tokenize import word_tokenize
-from nltk.stem import PorterStemmer, WordNetLemmatizer
-import matplotlib.pyplot as plt
-import seaborn as sns
-from wordcloud import WordCloud
+from utils.nltk_sentiment_analysis import *
+from UI.pages.chatbot_page import chatbot_page
 from statsmodels.tsa.arima.model import ARIMA
-import os
+from wordcloud import WordCloud
 
-# Initialize NLTK resources
-nltk.download('punkt')
-nltk.download('vader_lexicon')
-nltk.download('wordnet')
 
-# API Key
-API_KEY = 'cs4p4u1r01qgd1p6742gcs4p4u1r01qgd1p67430'
+def display_stock_dashboard():
 
-# Load company names and symbols
-with open(r'C:\Users\anask\Desktop\Investment-Optimization-in-the-Stock-Market-main\Data\companies.json', 'r') as f:
-    companies = json.load(f)
 
-# Function to fetch company news
-def fetch_company_news(symbol, from_date, to_date):
-    url = f'https://finnhub.io/api/v1/company-news?symbol={symbol}&from={from_date}&to={to_date}&token={API_KEY}'
-    try:
-        response = requests.get(url)
-        response.raise_for_status()
-        news_data = response.json()
-        news_df = pd.DataFrame(news_data)
+    with open('json/companies.json') as f:
+        companies = json.load(f)
+
+    st.title("Stock Market Investment Dashboard")
+  # Toggle the button state
+
+    # Update `use_lemmatization` variable based on the button state
+    use_lemmatization = st.session_state.is_button_on
+
+    # Streamlit App Title
+
+
+
+    if 'selected_security' in st.session_state:
+        company_name = st.session_state['selected_security']
+        st.write(f"Selected company: {company_name}")
+        # Convert to lowercase for JSON lookup
+        company_name_lower = company_name.lower()
+        symbol = companies.get(company_name_lower)
         
-        if 'datetime' in news_df.columns:
-            news_df['date'] = pd.to_datetime(news_df['datetime'], unit='s').dt.date
-        return news_df[['headline', 'date', 'url']]
-    except Exception as e:
-        st.error(f"Error fetching data: {e}")
-        return None
+        if symbol:
+            df_historical = pd.read_csv('Data/historical_data.csv')
+            from_date = df_historical['Date'].min()
+            to_date = df_historical['Date'].max()
 
-# NLTK text processing functions
-def preprocess_text_nltk(text, use_lemmatization=True):
-    lemmatizer = WordNetLemmatizer()
-    stemmer = PorterStemmer()
-    text = text.lower()
-    text = re.sub(r'http\S+|www\S+|https\S+', '', text, flags=re.MULTILINE)
-    text = re.sub(r'[^\w\s]', '', text)
-    tokens = word_tokenize(text)
-    if use_lemmatization:
-        tokens = [lemmatizer.lemmatize(token) for token in tokens]
-    else:
-        tokens = [stemmer.stem(token) for token in tokens]
-    return ' '.join(tokens)
+            news_df = fetch_company_news(symbol, from_date, to_date)
 
-def get_sentiment_nltk(processed_headlines, use_lemmatization=True):
-    sia = SentimentIntensityAnalyzer()
-    processed_headlines = processed_headlines.apply(lambda x: preprocess_text_nltk(x, use_lemmatization))
-    scores = processed_headlines.apply(lambda x: sia.polarity_scores(x)['compound'])
-    sentiment_labels = ['Positive' if score > 0.05 else 'Negative' if score < -0.05 else 'Neutral' for score in scores]
-    return pd.Series(scores), pd.Series(sentiment_labels)
+            if news_df is not None:
+                processed_news = analyze_company_news(news_df)
 
-def analyze_company_news(news_df):
-    important_words = load_important_words(r'C:\Users\anask\Desktop\Investment-Optimization-in-the-Stock-Market-main\json\important_words.json')
-    news_df['relevance_score'] = calculate_relevance_score(news_df['headline'], important_words)
-    news_df['sentiment_score'], news_df['sentiment_label'] = get_sentiment_nltk(news_df['headline'])
-    return news_df
+                ui.tabs(options=['Data', 'Graphs', 'Predictions','Chatbot'], default_value='Data', key="main_tabs")
 
-def load_important_words(file_path):
-    with open(file_path) as f:
-        important_words = json.load(f)
-    return {word for category in important_words.values() for word in category}
+                if st.session_state.main_tabs == 'Data':
+                    st.subheader("Processed Company News")
 
-def calculate_relevance_score(headlines, important_words):
-    return pd.Series([sum(1 for word in headline.lower().split() if word in important_words) for headline in headlines])
+                    cols = st.columns(3)
+                    with cols[0]:
+                        total_news_count = len(processed_news)
+                        ui.card(title="Total Headlines", content=str(total_news_count), description="Total news articles fetched", key="total_news_card").render()
+                    with cols[1]:
+                        latest_date = processed_news['date'].max()
+                        ui.card(title="Latest News Date", content=str(latest_date), description="Most recent news article date", key="latest_date_card").render()
+                    with cols[2]:
+                        most_common_sentiment = processed_news['sentiment_label'].mode()[0]
+                        ui.card(title="Most Common Sentiment", content=most_common_sentiment, description="Dominant sentiment across news", key="common_sentiment_card").render()
 
-# Streamlit App
-st.title("Stock Market Investment Dashboard")
+                    processed_news['date'] = processed_news['date'].astype(str)
+                    with ui.element("div", className="table-container", key="news_table_container"):
+                        ui.table(data=processed_news[['headline', 'date', 'processed_headline','sentiment_label']], maxHeight=400, key="news_data_table")
 
-# User input for company name
-company_name = st.text_input("Enter the company name:")
+                elif st.session_state.main_tabs == 'Graphs':
+                    cols = st.columns(3)
+                    with cols[0]:
+                        positive_count = processed_news['sentiment_label'].value_counts().get('Positive', 0)
+                        ui.card(title="Positive Sentiment", content=str(positive_count), description="Number of positive headlines", key="positive_card").render()
+                    with cols[1]:
+                        negative_count = processed_news['sentiment_label'].value_counts().get('Negative', 0)
+                        ui.card(title="Negative Sentiment", content=str(negative_count), description="Number of negative headlines", key="negative_card").render()
+                    with cols[2]:
+                        neutral_count = processed_news['sentiment_label'].value_counts().get('Neutral', 0)
+                        ui.card(title="Neutral Sentiment", content=str(neutral_count), description="Number of neutral headlines", key="neutral_card").render()
 
-if company_name:
-    company_name_lower = company_name.lower()
-    symbol = companies.get(company_name_lower)
-    
-    if symbol:
-        # Load historical data
-        df_historical = pd.read_csv(r'C:\Users\anask\Desktop\Investment-Optimization-in-the-Stock-Market-main\Data\historical_data.csv')
-        from_date = df_historical['Date'].min()
-        to_date = df_historical['Date'].max()
+                    st.subheader("Sentiment Distribution")
+                    sentiment_counts = processed_news['sentiment_label'].value_counts()
 
-        # Fetch company news
-        news_df = fetch_company_news(symbol, from_date, to_date)
+                    sentiment_df = pd.DataFrame({
+                        'Sentiment': sentiment_counts.index,
+                        'Count': sentiment_counts.values
+                    })
 
-        if news_df is not None:
-            # Analyze news
-            processed_news = analyze_company_news(news_df)
+                    st.vega_lite_chart(sentiment_df, {
+                        'mark': {'type': 'bar', 'tooltip': True},
+                        'encoding': {
+                            'x': {'field': 'Sentiment', 'type': 'ordinal'},
+                            'y': {'field': 'Count', 'type': 'quantitative', 'axis': {'grid': False}},
+                        },
+                    }, use_container_width=True)
 
-            # Display Processed News Data
-            st.write("Processed News Data:")
-            st.dataframe(processed_news)
+                    st.subheader("Word Cloud of Headlines")
+                    all_words = ' '.join(processed_news['headline'])
+                    wordcloud = WordCloud(width=800, height=400, background_color='white').generate(all_words)
 
-            # Sentiment Distribution
-            st.subheader("Sentiment Distribution")
-            sentiment_counts = processed_news['sentiment_label'].value_counts()
-            sns.barplot(x=sentiment_counts.index, y=sentiment_counts.values, palette='viridis')
-            plt.title('Sentiment Distribution')
-            plt.xlabel('Sentiment')
-            plt.ylabel('Count')
-            st.pyplot(plt)
+                    st.image(wordcloud.to_array())
 
-            # Word Cloud
-            st.subheader("Word Cloud of Headlines")
-            all_words = ' '.join(processed_news['headline'])
-            wordcloud = WordCloud(width=800, height=400, background_color='white').generate(all_words)
-            plt.figure(figsize=(10, 5))
-            plt.imshow(wordcloud, interpolation='bilinear')
-            plt.axis('off')
-            st.pyplot(plt)
+                elif st.session_state.main_tabs == 'Predictions':
+                    st.subheader("Stock Price Forecast")
+                    df_historical['Date'] = pd.to_datetime(df_historical['Date'])
+                    df_historical.set_index('Date', inplace=True)
 
-            # Time Series Forecast
-            st.subheader("Stock Price Forecast")
-            df_historical['Date'] = pd.to_datetime(df_historical['Date'])
-            df_historical.set_index('Date', inplace=True)
+                    model = ARIMA(df_historical['Close'], order=(1, 1, 1))
+                    model_fit = model.fit()
+                    forecast = model_fit.forecast(steps=3)
 
-            model = ARIMA(df_historical['Close'], order=(1, 1, 1))
-            model_fit = model.fit()
-            forecast = model_fit.forecast(steps=3)
+                    forecast_dates = pd.date_range(start=pd.to_datetime('now'), periods=3)
+                    predicted_prices = forecast.values
 
-            forecast_dates = pd.date_range(start=pd.to_datetime('now'), periods=3)
-            predicted_prices = forecast.values
+                    st.subheader("Predicted Prices for the Next 3 Days:")
+                    cols = st.columns(3)
+                    with cols[0]:
+                        ui.card(title=f"Price predicted for {forecast_dates[0].date()}", content=f"{predicted_prices[0]:.2f}", description="", key="forecast1").render()
+                    with cols[1]:
+                        ui.card(title=f"Price predicted for {forecast_dates[1].date()}", content=f"{predicted_prices[1]:.2f}", description="", key="forecast2").render()
+                    with cols[2]:
+                        ui.card(title=f"Price predicted for {forecast_dates[2].date()}", content=f"{predicted_prices[2]:.2f}", description="", key="forecast3").render()
 
-            st.write("Predicted Prices for the Next 3 Days:")
-            for date, price in zip(forecast_dates, predicted_prices):
-                st.write(f'Price predicted for {date.date()}: {price}')
+                    forecast_df = pd.DataFrame({
+                        'Date': forecast_dates,
+                        'Predicted Close Price': predicted_prices
+                    })
 
-            # Plot the historical and predicted prices
-            plt.figure(figsize=(10, 5))
-            plt.plot(df_historical['Close'], label='Actual Prices', marker='o')
-            plt.scatter(forecast_dates, predicted_prices, color='green', label='Predicted Prices', marker='x')
-            plt.title('Stock Price Forecast')
-            plt.xlabel('Date')
-            plt.ylabel('Price')
-            plt.axvline(x=pd.to_datetime('now'), color='r', linestyle='--', label='Forecast Start')
-            plt.legend()
-            st.pyplot(plt)
-    else:
-        st.error("Company not found in the JSON file.")
+                    combined_df = df_historical[['Close']].copy()
+                    combined_df = pd.concat([combined_df, forecast_df.set_index('Date')])
+
+                    st.line_chart(combined_df)
+                elif st.session_state.main_tabs == 'Chatbot' :
+                    chatbot_page() 
+
+
+        else:
+            st.error("Company not found in the JSON file.")
