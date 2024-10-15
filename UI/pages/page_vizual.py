@@ -41,30 +41,30 @@ def display_stock_dashboard():
                 # Processed company news
                 processed_news = analyze_company_news(news_df)
 
-                # Display Data Tab (default)
-                st.subheader("Processed Company News")
-                st.divider()
-                
-                cols = st.columns(3)
-                with cols[0]:
-                    total_news_count = len(processed_news)
-                    ui.card(title="Total Headlines", content=str(total_news_count), description="Total news articles fetched", key="total_news_card").render()
-                with cols[1]:
-                    latest_date = processed_news['date'].max()
-                    ui.card(title="Latest News Date", content=str(latest_date), description="Most recent news article date", key="latest_date_card").render()
-                with cols[2]:
-                    most_common_sentiment = processed_news['sentiment_label'].mode()[0]
-                    ui.card(title="Most Common Sentiment", content=most_common_sentiment, description="Dominant sentiment across news", key="common_sentiment_card").render()
-                
-                # Show processed news table
-                processed_news['date'] = processed_news['date'].astype(str)
-                st.divider()
-                st.table(processed_news[['headline', 'date', 'processed_headline', 'sentiment_label']])
-
                 # Display the selected tab contents
-                if selected_tab == 'Graphs':
+                if selected_tab == 'Data':
+                    st.subheader("Processed Company News")
                     st.divider()
+                    
+                    cols = st.columns(3)
+                    with cols[0]:
+                        total_news_count = len(processed_news)
+                        ui.card(title="Total Headlines", content=str(total_news_count), description="Total news articles fetched", key="total_news_card").render()
+                    with cols[1]:
+                        latest_date = processed_news['date'].max()
+                        ui.card(title="Latest News Date", content=str(latest_date), description="Most recent news article date", key="latest_date_card").render()
+                    with cols[2]:
+                        most_common_sentiment = processed_news['sentiment_label'].mode()[0]
+                        ui.card(title="Most Common Sentiment", content=most_common_sentiment, description="Dominant sentiment across news", key="common_sentiment_card").render()
+                    
+                    # Show processed news table
+                    processed_news['date'] = processed_news['date'].astype(str)
+                    st.divider()
+                    st.table(processed_news[['headline', 'date', 'processed_headline', 'sentiment_label']])
+
+                elif selected_tab == 'Graphs':
                     st.subheader("Sentiment Analysis")
+                    st.divider()
                     
                     cols = st.columns(3)
                     with cols[0]:
@@ -98,8 +98,8 @@ def display_stock_dashboard():
                     st.image(wordcloud.to_array())
                     
                 elif selected_tab == 'Predictions':
-                    st.divider()
                     st.subheader("Stock Price Forecast")
+                    st.divider()
                     
                     df_historical['Date'] = pd.to_datetime(df_historical['Date'])
                     df_historical.set_index('Date', inplace=True)
@@ -121,8 +121,7 @@ def display_stock_dashboard():
                     st.line_chart(combined_df)
                     
                 elif selected_tab == 'Chatbot':
-                    st.divider()
+                    st.title("🤖 Trade Analyst Agent")
                     chatbot_page()
         else:
             st.error("Company not found in the JSON file.")
-

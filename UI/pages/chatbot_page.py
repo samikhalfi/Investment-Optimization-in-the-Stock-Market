@@ -22,14 +22,14 @@ def chatbot_page():
             return user_role
 
 
+
     # Initialize chat session in Streamlit if not already present
     if "chat_session" not in st.session_state:
         st.session_state.chat_session = model.start_chat(history=[])
 
 
     # Display the chatbot's title on the page
-    st.title("🤖 Trade Analyst Agent")
-
+ 
     # Display the chat history
     for message in st.session_state.chat_session.history:
         with st.chat_message(translate_role_for_streamlit(message.role)):

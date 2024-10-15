@@ -1,0 +1,10 @@
+streamlit
+streamlit-shadcn-ui
+pandas
+statsmodels
+wordcloud
+nltk
+vega_datasets
+beautifulsoup4
+yfinance
+google-generativeai
