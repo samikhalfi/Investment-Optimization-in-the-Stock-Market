@@ -97,6 +97,7 @@ def display_data_page():
             st.success(f"The symbol for {selected_company.capitalize()} is **{selected_details['symbol']}**.")
 
             # Date picker and slider
+            st.divider() 
             st.subheader("Select Date Range for Stock Data")
             days_slider = st.slider("Select number of days back from today:", min_value=1, max_value=30, value=30)
 
