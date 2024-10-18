@@ -8,7 +8,7 @@ from nltk.tokenize import word_tokenize
 from nltk.stem import PorterStemmer, WordNetLemmatizer
 import streamlit as st
 
-API_KEY = 'cs4p4u1r01qgd1p6742gcs4p4u1r01qgd1p67430'
+API_KEY = 'your_api_key'
 
 def fetch_company_news(symbol, from_date, to_date):
     url = f'https://finnhub.io/api/v1/company-news?symbol={symbol}&from={from_date}&to={to_date}&token={API_KEY}'
